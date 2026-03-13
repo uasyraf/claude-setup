@@ -1,0 +1,46 @@
+# Secrets and credentials
+.credentials.json
+*.secret
+*.key
+
+# Ephemeral/local state
+history.jsonl
+mcp-needs-auth-cache.json
+settings.local.json
+cache/
+debug/
+file-history/
+session-env/
+telemetry/
+todos/
+paste-cache/
+shell-snapshots/
+ide/
+plans/
+backups/
+downloads/
+tasks/
+
+# Plugin runtime data
+plugins/cache/
+plugins/blocklist.json
+plugins/install-counts-cache.json
+plugins/installed_plugins.json
+plugins/known_marketplaces.json
+plugins/marketplaces/
+
+# Project-specific memory (per-repo, not global config)
+projects/
+
+# Node modules
+node_modules/
+
+# Skill runtime data
+skills/*/.claude-flow/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Git
+.git/
