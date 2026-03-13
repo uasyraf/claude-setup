@@ -9,7 +9,29 @@
   "permissions": {
     "allow": [
       "Bash(npx ruflo*)",
-      "Bash(node /home/ummar/.claude/*)"
+      "Bash(node /home/ummar/.claude/*)",
+      "Bash(npm run *)",
+      "Bash(npm test*)",
+      "Bash(npm install*)",
+      "Bash(npx *)",
+      "Bash(git *)",
+      "Bash(python -m pytest*)",
+      "Bash(python -m ruff*)",
+      "Bash(python -m mypy*)",
+      "Bash(cargo test*)",
+      "Bash(cargo build*)",
+      "Bash(cargo clippy*)",
+      "Bash(bun run *)",
+      "Bash(bun test*)",
+      "Bash(pnpm run *)",
+      "Bash(pnpm test*)",
+      "Bash(ls *)",
+      "Bash(cat *)",
+      "Bash(wc *)",
+      "Bash(head *)",
+      "Bash(tail *)",
+      "Bash(which *)",
+      "Bash(gh *)"
     ],
     "deny": [
       "Read(./.env)",

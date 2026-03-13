@@ -210,13 +210,14 @@ function run(stdinData) {
     },
 
     'compact-manual': function() {
-      console.log('PreCompact: Review CLAUDE.md for agent dispatch and concurrency rules');
-      console.log('Ready for compact operation');
+      console.log('[COMPACT] Preserve: current task objective, files modified, decisions made, blockers hit');
+      console.log('[COMPACT] Drop: exploration results already acted on, failed approaches, verbose tool output');
+      console.log('[COMPACT] Rules live in ~/.claude/rules/ — they reload automatically, no need to preserve');
     },
 
     'compact-auto': function() {
-      console.log('Auto-Compact: Ensure you understand complexity router tiers and agent dispatch rules');
-      console.log('Auto-compact proceeding');
+      console.log('[AUTO-COMPACT] Context approaching limit. Preserve: task state, file changes, next steps');
+      console.log('[AUTO-COMPACT] If context exceeds 85% after compact, recommend /clear with refined prompt');
     },
 
     'status': function() {
