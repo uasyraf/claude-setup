@@ -45,6 +45,10 @@ node_modules/
 # Skill runtime data
 skills/*/.claude-flow/
 
+# Local skill backups
+skills/*.bak/
+*.bak/
+
 # OS files
 .DS_Store
 Thumbs.db
