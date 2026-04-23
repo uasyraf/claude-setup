@@ -11,6 +11,8 @@ settings.local.json
 config.json
 stats-cache.json
 cache/
+channels/
+image-cache/
 debug/
 file-history/
 session-env/
