@@ -69,6 +69,26 @@
         ]
       },
       {
+        "matcher": "Write|Edit|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node /home/ummar/.claude/hooks/debt-scanner.cjs",
+            "timeout": 3000
+          }
+        ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node /home/ummar/.claude/hooks/self-heal.cjs",
+            "timeout": 3000
+          }
+        ]
+      },
+      {
         "matcher": "*",
         "hooks": [
           {
@@ -86,6 +106,11 @@
             "type": "command",
             "command": "node /home/ummar/.claude/helpers/hook-handler.cjs route",
             "timeout": 10000
+          },
+          {
+            "type": "command",
+            "command": "node /home/ummar/.claude/hooks/auto-memory-recall.cjs",
+            "timeout": 3000
           }
         ]
       }
@@ -113,6 +138,11 @@
             "type": "command",
             "command": "node /home/ummar/.claude/helpers/auto-memory-hook.mjs sync",
             "timeout": 10000
+          },
+          {
+            "type": "command",
+            "command": "node /home/ummar/.claude/hooks/progress-tracker.cjs",
+            "timeout": 5000
           }
         ]
       }
@@ -150,7 +180,11 @@
     "obsidian@obsidian-skills": true,
     "ui-ux-pro-max@ui-ux-pro-max-skill": true,
     "claude-api@anthropic-agent-skills": true,
-    "clangd-lsp@claude-plugins-official": true
+    "clangd-lsp@claude-plugins-official": true,
+    "comprehensive-review@claude-code-workflows": true,
+    "debugging-toolkit@claude-code-workflows": true,
+    "agent-orchestration@claude-code-workflows": true,
+    "backend-development@claude-code-workflows": true
   },
   "extraKnownMarketplaces": {
     "thedotmack": {
@@ -182,8 +216,15 @@
         "source": "github",
         "repo": "nextlevelbuilder/ui-ux-pro-max-skill"
       }
+    },
+    "claude-code-workflows": {
+      "source": {
+        "source": "github",
+        "repo": "wshobson/agents"
+      }
     }
   },
+  "effortLevel": "xhigh",
   "showClearContextOnPlanAccept": true,
   "skipDangerousModePermissionPrompt": true,
   "skipAutoPermissionPrompt": true
