@@ -113,7 +113,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node /home/ummar/.claude/hooks/iris-context-monitor.cjs",
+            "command": "node /home/ummar/.claude/hooks/context-monitor.cjs",
             "timeout": 3000
           }
         ]
@@ -209,7 +209,8 @@
     "comprehensive-review@claude-code-workflows": true,
     "debugging-toolkit@claude-code-workflows": true,
     "agent-orchestration@claude-code-workflows": true,
-    "backend-development@claude-code-workflows": true
+    "backend-development@claude-code-workflows": true,
+    "telegram@claude-plugins-official": true
   },
   "extraKnownMarketplaces": {
     "thedotmack": {
@@ -252,5 +253,6 @@
   "effortLevel": "xhigh",
   "showClearContextOnPlanAccept": true,
   "skipDangerousModePermissionPrompt": true,
-  "skipAutoPermissionPrompt": true
+  "skipAutoPermissionPrompt": true,
+  "teammateMode": "tmux"
 }

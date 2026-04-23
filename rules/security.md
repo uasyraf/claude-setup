@@ -17,7 +17,7 @@ Before any commit, verify:
 
 ### Security-Reviewer Dispatch Triggers
 Dispatch depends on scope — defer to the Complexity Router in CLAUDE.md:
-- **1 file**: IRIS reviews inline — no agent dispatch (Tier 1)
+- **1 file**: inline review — no agent dispatch (Tier 1)
 - **2-4 files**: dispatch `security-team` (explorer, security-reviewer, coder) at Tier 2
 - **5+ files or full-codebase audit**: dispatch `security-team` at Tier 3
 

@@ -6,7 +6,7 @@ This directory is the **global** Claude Code configuration — reusable machiner
 
 | Path | What lives here |
 |------|-----------------|
-| `CLAUDE.md` | Operating system: JARVIS persona, Tier 1/2/3 router, prohibitions, autonomy rules, on-every-task loop |
+| `CLAUDE.md` | Operating system: identity, Tier 1/2/3 router, prohibitions, autonomy rules, on-every-task loop |
 | `settings.json` | Hooks, permissions, `defaultMode=auto`, `effortLevel`, enabled plugins, marketplaces |
 | `rules/` | Per-language standards + cross-cutting rules (13 files) |
 | `agents/` | Role-based agents (analyst, architect, coder, explorer, implementer, qa, reviewer, security-reviewer, strategist, challenger) |
@@ -31,7 +31,7 @@ This directory is the **global** Claude Code configuration — reusable machiner
 | `PostToolUse` (Write/Edit/MultiEdit) | `helpers/quality-gate.cjs` | Code quality gate |
 | `PostToolUse` (Write/Edit/MultiEdit) | `hooks/debt-scanner.cjs` | Append `TODO`/`FIXME`/`HACK`/`DEBT` markers to `<project>/DEBT.md` |
 | `PostToolUse` (Bash) | `hooks/self-heal.cjs` | Classify failures, emit diagnostic + retry directive |
-| `PostToolUse` (*) | `hooks/iris-context-monitor.cjs` | Context window monitoring |
+| `PostToolUse` (*) | `hooks/context-monitor.cjs` | Context window monitoring |
 | `UserPromptSubmit` | `helpers/hook-handler.cjs route` | Tier routing + agent suggestion |
 | `UserPromptSubmit` | `hooks/auto-memory-recall.cjs` | Grep memory stores for prompt keywords, inject top hits |
 | `SessionStart` | `helpers/hook-handler.cjs session-restore` + `helpers/auto-memory-hook.mjs import` | Restore session + import claude-mem entries |

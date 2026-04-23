@@ -1,16 +1,14 @@
 #!/usr/bin/env node
 /**
- * IRIS Context Monitor - PostToolUse hook
+ * Context Monitor - PostToolUse hook
  * Reads context metrics from the statusline bridge file and injects
- * IRIS-specific warnings with checkpoint behavior at 25-30% remaining.
+ * warnings with checkpoint behavior at 25-30% remaining.
  *
  * Thresholds:
  *   > 35% remaining  → silent
  *   30-35% remaining → WARNING: wrap up current task
  *   25-30% remaining → CHECKPOINT: save state via memory-manager
  *   < 25% remaining  → CRITICAL: stop new work immediately
- *
- * Uses separate warn file from GSD monitor to avoid interference.
  */
 
 const fs = require('fs');
@@ -49,8 +47,7 @@ process.stdin.on('end', () => {
 
     if (remaining > WARNING_THRESHOLD) process.exit(0);
 
-    // Separate warn file from GSD monitor
-    const warnPath = path.join(tmpDir, `claude-ctx-${sessionId}-iris-warned.json`);
+    const warnPath = path.join(tmpDir, `claude-ctx-${sessionId}-warned.json`);
     let warnData = { callsSinceWarn: 0, lastLevel: null, checkpointFired: false };
     let firstWarn = true;
 
@@ -81,24 +78,24 @@ process.stdin.on('end', () => {
 
     let message;
     if (isCritical) {
-      message = `[IRIS CONTEXT CRITICAL] Usage: ${usedPct}% | Remaining: ${remaining}%. ` +
+      message = `[CONTEXT CRITICAL] Usage: ${usedPct}% | Remaining: ${remaining}%. ` +
         'STOP all new work immediately. Save critical state to memory and inform the user ' +
         'that context is nearly exhausted. Summarize current progress and next steps.';
     } else if (isCheckpoint) {
       // Fire checkpoint instruction once per session
       if (!warnData.checkpointFired) {
         warnData.checkpointFired = true;
-        message = `[IRIS CONTEXT CHECKPOINT] Usage: ${usedPct}% | Remaining: ${remaining}%. ` +
+        message = `[CONTEXT CHECKPOINT] Usage: ${usedPct}% | Remaining: ${remaining}%. ` +
           'Context checkpoint triggered. Save current state NOW: ' +
           '1) Write a state summary to memory (current task, progress, pending items, key decisions). ' +
           '2) Note any files being actively modified and their state. ' +
           '3) Continue current task but do not start new complex work.';
       } else {
-        message = `[IRIS CONTEXT CHECKPOINT] Usage: ${usedPct}% | Remaining: ${remaining}%. ` +
+        message = `[CONTEXT CHECKPOINT] Usage: ${usedPct}% | Remaining: ${remaining}%. ` +
           'State already checkpointed. Wrap up current task. Do not start new complex work.';
       }
     } else {
-      message = `[IRIS CONTEXT WARNING] Usage: ${usedPct}% | Remaining: ${remaining}%. ` +
+      message = `[CONTEXT WARNING] Usage: ${usedPct}% | Remaining: ${remaining}%. ` +
         'Begin wrapping up current task. Do not start new complex work. ' +
         'Consider saving progress to memory if task is incomplete.';
     }

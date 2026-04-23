@@ -7,7 +7,7 @@ type: global
 ## Planning Protocol
 
 - Use Claude Code's built-in plan mode (EnterPlanMode) for implementation planning
-- Do NOT create `.planning/` directories or custom plan files unless the project uses GSD
+- Do NOT create `.planning/` directories or custom plan files
 - Plans should be concrete: ordered steps with file paths, not abstract descriptions
 - Plans are proposals — wait for user approval before executing
 - Update plans when approach changes rather than creating new ones
