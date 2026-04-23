@@ -48,6 +48,54 @@ This directory is the **global** Claude Code configuration — reusable machiner
 | `Stop` | `auto-memory-hook.mjs sync` + `progress-tracker.cjs` + `stop-telegram.cjs` | Sync memory; write session-end `PROGRESS.md` entry; notify Telegram with files/commits summary |
 | `PreCompact manual\|auto` | `hook-handler.cjs compact-manual\|compact-auto` | Guide what to preserve/drop before compaction |
 
+### Session flow
+
+```mermaid
+flowchart TD
+    SS[SessionStart<br/>session-restore + memory import] --> U[User prompt]
+    U --> UPS[UserPromptSubmit<br/>router + auto-recall]
+    UPS --> R{Tier + team<br/>classification}
+
+    R -->|Tier 1| T1[Main agent only<br/>effort=low]
+    R -->|Tier 2| T2[Main agent or team<br/>effort=medium]
+    R -->|Tier 3 + team| T3[Team lead + members<br/>effort=high]
+
+    T1 --> TOOL{Tool call}
+    T2 --> TOOL
+    T3 --> TOOL
+
+    TOOL -->|Bash| PB[PreToolUse Bash<br/>destructive-gate<br/>commit-test-gate]
+    TOOL -->|Task| PT[PreToolUse Task<br/>mid-task recall<br/>60s debounce]
+    TOOL -->|Write/Edit/MultiEdit| EXEC[Tool executes]
+
+    PB -->|blocked| ESC[Ask user]
+    PB -->|ok| EXEC
+    PT --> EXEC
+
+    EXEC -->|Write/Edit| POSTE[PostToolUse Write/Edit<br/>post-edit · quality-gate<br/>debt-scanner · progress --checkpoint]
+    EXEC -->|Bash| POSTB[PostToolUse Bash<br/>self-heal classify]
+    EXEC -->|*| CTX[context-monitor]
+
+    POSTE -->|critical secret/eval/SQL| ESC
+    POSTE --> DEBT[(project DEBT.md)]
+    POSTE --> PROGC[(project PROGRESS.md<br/>checkpoint every 10 edits)]
+
+    POSTB -->|fail 1-2| RETRY[Emit retry hint]
+    POSTB -->|fail 3| ADAPT[Emit change-approach hint]
+    POSTB -->|fail 4+| TGE[Telegram<br/>self_heal_escalate]
+
+    RETRY --> U
+    ADAPT --> U
+
+    EXEC --> DONE{more turns?}
+    DONE -->|yes| U
+    DONE -->|no| STOP[Stop hooks<br/>memory sync<br/>progress session-end<br/>stop-telegram]
+
+    STOP --> MEM[(~/.claude/projects/slug/memory)]
+    STOP --> PROGE[(project PROGRESS.md)]
+    STOP --> TGS[Telegram<br/>session_end summary]
+```
+
 ## Complexity router
 
 The router (`helpers/router.cjs`, invoked from `hook-handler.cjs route`) classifies every prompt into a tier and — when keywords match — a team.
