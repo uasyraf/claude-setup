@@ -148,6 +148,26 @@ function main() {
   } else {
     stage = `escalate`;
     directive = 'Cascade exhausted. Report the failure to the user with what was tried and why it keeps failing. Do not retry.';
+    // Pipe to Telegram bridge (no-ops if config missing or placeholder)
+    try {
+      const { spawn } = require('child_process');
+      const bridge = path.join(os.homedir(), '.claude', 'hooks', 'telegram-bridge.cjs');
+      if (fs.existsSync(bridge)) {
+        const tg = spawn('node', [bridge], { stdio: ['pipe', 'ignore', 'ignore'], detached: true });
+        const lastCmd = (state.history || []).slice(-1)[0] || {};
+        tg.stdin.write(JSON.stringify({
+          event: 'self_heal_escalate',
+          title: `${category.id} failed ${state.failures}x`,
+          body: [
+            `Category: ${category.id}`,
+            `Last cmd: ${lastCmd.cmd || '(unknown)'}`,
+            `Hint: ${category.hint}`,
+          ].join('\n'),
+        }));
+        tg.stdin.end();
+        tg.unref();
+      }
+    } catch { /* non-fatal */ }
   }
 
   const out = [

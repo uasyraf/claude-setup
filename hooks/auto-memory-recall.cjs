@@ -116,10 +116,26 @@ function main() {
   let payload = {};
   try { payload = JSON.parse(input || '{}'); } catch { /* */ }
 
-  const prompt = payload.prompt || '';
+  // Prompt source depends on hook event:
+  //  - UserPromptSubmit → payload.prompt
+  //  - PreToolUse Task  → payload.tool_input.prompt / .description
+  const prompt = payload.prompt
+    || (payload.tool_input && (payload.tool_input.prompt || payload.tool_input.description))
+    || '';
   const cwd = payload.cwd || process.cwd();
 
   if (!prompt || prompt.length < 6) return;
+
+  // Debounce for Task subagent dispatch: skip if invoked within last 60s
+  if (payload.tool_name === 'Task' || payload.hook_event_name === 'PreToolUse') {
+    const sessionId = (payload.session_id || 'default').replace(/[^a-zA-Z0-9_-]/g, '_').slice(0, 64);
+    const sentinel = path.join(os.tmpdir(), `claude-recall-${sessionId}.sentinel`);
+    try {
+      const st = fs.statSync(sentinel);
+      if (Date.now() - st.mtimeMs < 60000) return;
+    } catch { /* no sentinel, proceed */ }
+    try { fs.writeFileSync(sentinel, String(Date.now())); } catch { /* */ }
+  }
 
   const keywords = extractKeywords(prompt);
   if (keywords.length === 0) return;
@@ -153,9 +169,10 @@ function main() {
   }
 
   // additionalContext via JSON payload — Claude Code merges into prompt
+  const eventName = payload.hook_event_name || 'UserPromptSubmit';
   process.stdout.write(JSON.stringify({
     hookSpecificOutput: {
-      hookEventName: 'UserPromptSubmit',
+      hookEventName: eventName,
       additionalContext: out.trim()
     }
   }));

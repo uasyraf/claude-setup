@@ -45,6 +45,16 @@
             "timeout": 5000
           }
         ]
+      },
+      {
+        "matcher": "Task",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node /home/ummar/.claude/hooks/auto-memory-recall.cjs",
+            "timeout": 3000
+          }
+        ]
       }
     ],
     "PostToolUse": [
@@ -74,6 +84,16 @@
           {
             "type": "command",
             "command": "node /home/ummar/.claude/hooks/debt-scanner.cjs",
+            "timeout": 3000
+          }
+        ]
+      },
+      {
+        "matcher": "Write|Edit|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node /home/ummar/.claude/hooks/progress-tracker.cjs --checkpoint",
             "timeout": 3000
           }
         ]
@@ -143,6 +163,11 @@
             "type": "command",
             "command": "node /home/ummar/.claude/hooks/progress-tracker.cjs",
             "timeout": 5000
+          },
+          {
+            "type": "command",
+            "command": "node /home/ummar/.claude/hooks/stop-telegram.cjs",
+            "timeout": 5000
           }
         ]
       }
@@ -173,7 +198,7 @@
     "command": "node /home/ummar/.claude/helpers/statusline.cjs"
   },
   "enabledPlugins": {
-    "claude-mem@thedotmack": true,
+    "claude-mem@thedotmack": false,
     "superpowers@superpowers-dev": true,
     "document-skills@anthropic-agent-skills": true,
     "example-skills@anthropic-agent-skills": true,

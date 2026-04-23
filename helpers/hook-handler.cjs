@@ -89,6 +89,32 @@ function run(stdinData) {
     return null;
   }
 
+  var TIER_EFFORT = { 1: 'low', 2: 'medium', 3: 'high' };
+
+  function writeLocalEffort(level) {
+    var localPath = path.join(os.homedir(), '.claude', 'settings.local.json');
+    try {
+      var data = {};
+      if (fs.existsSync(localPath)) {
+        data = JSON.parse(fs.readFileSync(localPath, 'utf-8'));
+      }
+      // Respect explicit global xhigh override — don't downgrade
+      try {
+        var globalPath = path.join(os.homedir(), '.claude', 'settings.json');
+        var global = JSON.parse(fs.readFileSync(globalPath, 'utf-8'));
+        if (global.effortLevel === 'xhigh') return null;
+      } catch (e) { /* proceed with write */ }
+      if (data.effortLevel === level) return level;
+      data.effortLevel = level;
+      var tmp = localPath + '.tmp';
+      fs.writeFileSync(tmp, JSON.stringify(data, null, 2));
+      fs.renameSync(tmp, localPath);
+      return level;
+    } catch (e) {
+      return null;
+    }
+  }
+
   var handlers = {
     'route': function() {
       if (intelligence && intelligence.getContext) {
@@ -109,6 +135,20 @@ function run(stdinData) {
         output.push('[TIER:' + result.tier + ']');
         var a = result.agent;
         output.push('[AGENT] ' + a.agent + ' (' + a.confidence + ') -- ' + a.reason);
+        // Team auto-dispatch line
+        if (result.team) {
+          output.push('[TEAM] ' + result.team.name +
+            ' — lead: ' + result.team.lead +
+            ' — members: ' + (result.team.members || []).join(', '));
+        }
+        // Effort auto-apply: map tier to effortLevel in settings.local.json
+        var mapped = TIER_EFFORT[result.tier] || 'medium';
+        var applied = writeLocalEffort(mapped);
+        if (applied) {
+          output.push('[EFFORT:' + applied + ']');
+        } else {
+          output.push('[EFFORT:xhigh] (global override active)');
+        }
         console.log(output.join('\n'));
       } else {
         console.log('[INFO] Router not available, using default routing');
@@ -129,10 +169,44 @@ function run(stdinData) {
 
     'pre-bash': function() {
       var cmd = prompt.toLowerCase();
-      var dangerous = ['rm -rf /', 'format c:', 'del /s /q c:\\', ':(){:|:&};:'];
+      var dangerous = [
+        'rm -rf /',
+        'format c:',
+        'del /s /q c:\\',
+        ':(){:|:&};:',
+        'rm -rf ~',
+        'rm -rf ~/',
+        'rm -rf $home',
+        'rm -rf /etc',
+        'rm -rf /usr',
+        'rm -rf /var',
+        'rm -rf /boot',
+        'rm -rf /bin',
+        'rm -rf /sbin',
+        'rm -rf /lib',
+      ];
       for (var i = 0; i < dangerous.length; i++) {
         if (cmd.includes(dangerous[i])) {
           console.error('[BLOCKED] Dangerous command detected: ' + dangerous[i]);
+          console.error('[BLOCKED] Ask user to confirm or use a safer alternative.');
+          process.exit(1);
+        }
+      }
+
+      var dangerousPatterns = [
+        { re: /\bgit\s+push\s+[^&|;]*?(?:--force|-f)\b/, msg: 'git push --force' },
+        { re: /\bgit\s+reset\s+--hard\b/, msg: 'git reset --hard' },
+        { re: /\bgit\s+branch\s+-D\b/i, msg: 'git branch -D (force delete)' },
+        { re: /\bgit\s+clean\s+-[a-z]*f[a-z]*\b/, msg: 'git clean -f' },
+        { re: /\bdrop\s+(?:table|database|schema)\b/i, msg: 'DROP TABLE/DATABASE/SCHEMA' },
+        { re: /\btruncate\s+table\b/i, msg: 'TRUNCATE TABLE' },
+        { re: /\bdelete\s+from\s+\w+\s*(?!.*\bwhere\b)(?:;|$)/i, msg: 'DELETE FROM without WHERE' },
+        { re: /\brm\s+-[rR]f?\s+\*/, msg: 'rm -rf * (unbounded wildcard)' },
+      ];
+      for (var j = 0; j < dangerousPatterns.length; j++) {
+        if (dangerousPatterns[j].re.test(prompt)) {
+          console.error('[BLOCKED] Destructive command detected: ' + dangerousPatterns[j].msg);
+          console.error('[BLOCKED] This operation is irreversible. Ask user to confirm or use a safer alternative.');
           process.exit(1);
         }
       }

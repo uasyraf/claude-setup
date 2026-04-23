@@ -16,10 +16,12 @@
 
 const fs = require('fs');
 const path = require('path');
+const os = require('os');
 const { execSync } = require('child_process');
 
 const MAX_LIVE_ENTRIES = 100;
 const SENTINEL = '<!-- AUTO-PROGRESS-END -->';
+const CHECKPOINT_THRESHOLD = 10;
 
 function readStdin() {
   try { return fs.readFileSync(0, 'utf-8'); } catch { return ''; }
@@ -168,16 +170,78 @@ function findProjectRoot(cwd) {
   return cwd || process.cwd();
 }
 
+function loadCheckpointState(sessionId) {
+  const safe = String(sessionId || 'default').replace(/[^a-zA-Z0-9_-]/g, '_').slice(0, 64);
+  const p = path.join(os.tmpdir(), `claude-edits-${safe}.json`);
+  try {
+    if (fs.existsSync(p)) return { path: p, state: JSON.parse(fs.readFileSync(p, 'utf-8')) };
+  } catch { /* */ }
+  return { path: p, state: { count: 0, files: [] } };
+}
+
+function saveCheckpointState(statePath, state) {
+  try { fs.writeFileSync(statePath, JSON.stringify(state)); } catch { /* */ }
+}
+
+function runCheckpoint(payload) {
+  const cwd = payload.cwd || process.cwd();
+  const projectRoot = findProjectRoot(cwd);
+  if (projectRoot === os.homedir()) return;
+  if (projectRoot.startsWith(path.join(os.homedir(), '.claude'))) return;
+
+  const filePath = payload.tool_input && payload.tool_input.file_path;
+  if (!filePath) return;
+
+  const { path: statePath, state } = loadCheckpointState(payload.session_id);
+  state.count = (state.count || 0) + 1;
+  state.files = Array.isArray(state.files) ? state.files : [];
+  if (!state.files.includes(filePath)) state.files.push(filePath);
+
+  if (state.count < CHECKPOINT_THRESHOLD) {
+    saveCheckpointState(statePath, state);
+    return;
+  }
+
+  // Threshold reached — flush checkpoint row
+  const progressPath = ensureProgressFile(projectRoot);
+  const ts = new Date().toISOString();
+  const session = String(payload.session_id || 'unknown').slice(0, 12);
+  const rel = state.files.slice(0, 8).map(f => path.relative(projectRoot, f)).filter(Boolean);
+
+  const lines = [
+    `### ${ts} — checkpoint`,
+    `_session: \`${session}\` · ${state.count} edits_`,
+    '',
+  ];
+  if (rel.length > 0) {
+    lines.push('**Files touched:**');
+    for (const f of rel) lines.push(`- \`${f}\``);
+    if (state.files.length > rel.length) lines.push(`- _…and ${state.files.length - rel.length} more_`);
+    lines.push('');
+  }
+  writeEntry(progressPath, lines.join('\n'));
+  rotateIfNeeded(progressPath);
+
+  // Reset counter but keep empty files list for next cycle
+  saveCheckpointState(statePath, { count: 0, files: [] });
+}
+
 function main() {
+  const isCheckpoint = process.argv.slice(2).includes('--checkpoint');
   let payload = {};
   try { payload = JSON.parse(readStdin() || '{}'); } catch { return; }
+
+  if (isCheckpoint) {
+    runCheckpoint(payload);
+    return;
+  }
 
   const cwd = payload.cwd || process.cwd();
   const projectRoot = findProjectRoot(cwd);
 
   // Don't create PROGRESS.md in $HOME or under ~/.claude — only in real projects
-  if (projectRoot === require('os').homedir()) return;
-  if (projectRoot.startsWith(path.join(require('os').homedir(), '.claude'))) return;
+  if (projectRoot === os.homedir()) return;
+  if (projectRoot.startsWith(path.join(os.homedir(), '.claude'))) return;
 
   const transcript = payload.transcript_path ? safeJSONLinesRead(payload.transcript_path) : [];
 

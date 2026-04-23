@@ -91,9 +91,15 @@ function formatMessage(event, title, body) {
   return lines.join('\n');
 }
 
+function isPlaceholder(v) {
+  if (!v || typeof v !== 'string') return true;
+  return /^PASTE-|^REPLACE-|^YOUR-|^<.*>$/i.test(v);
+}
+
 async function main() {
   const cfg = loadConfig();
   if (!cfg || !cfg.bot_token || !cfg.chat_id) return;
+  if (isPlaceholder(cfg.bot_token) || isPlaceholder(cfg.chat_id)) return;
 
   let payload = {};
   try { payload = JSON.parse(readStdin() || '{}'); } catch { return; }
