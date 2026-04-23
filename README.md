@@ -96,6 +96,71 @@ flowchart TD
     STOP --> TGS[Telegram<br/>session_end summary]
 ```
 
+### Session flow (ASCII)
+
+For viewers that don't render Mermaid:
+
+```
+ SessionStart: session-restore + memory import
+   │
+   ▼
+ User prompt ◄──────────────────────────────────────────────┐
+   │                                                         │
+   ▼                                                         │
+ UserPromptSubmit                                            │
+  ├─ hook-handler.cjs route                                  │
+  │    emits [TIER:1|2|3]  [AGENT]  [TEAM]  [EFFORT]         │
+  └─ auto-memory-recall.cjs                                  │
+       injects ≤2KB from MEMORY.md, CLAUDE.md,               │
+       PROGRESS.md, DEBT.md                                  │
+   │                                                         │
+   ▼                                                         │
+ Claude turn                                                 │
+  ├─ Tier 1: main agent only           (effort=low)          │
+  ├─ Tier 2: main agent or team        (effort=medium)       │
+  └─ Tier 3 + team: lead dispatches    (effort=high)         │
+   │                                                         │
+   ▼                                                         │
+ Tool call                                                   │
+  ├─ Bash  ─► PreToolUse Bash (hook-handler pre-bash)        │
+  │            · destructive gate (force-push, hard-reset,   │
+  │              DROP/TRUNCATE, DELETE-no-WHERE, rm -rf…)    │
+  │            · commit test gate (tier ≥ 2)                 │
+  │            · blocked?  ─► stop and ask user              │
+  ├─ Task  ─► PreToolUse Task (auto-memory-recall)           │
+  │            · mid-task recall, 60s debounce per session   │
+  └─ Write/Edit/MultiEdit  ─► (straight to PostToolUse)      │
+   │                                                         │
+   ▼                                                         │
+ Tool executes  ─►  PostToolUse                              │
+  ├─ Write/Edit                                              │
+  │    ├─ hook-handler post-edit       (metrics)             │
+  │    ├─ quality-gate.cjs             (block on CRITICAL:   │
+  │    │                                 AWS/OpenAI/Stripe/  │
+  │    │                                 GitHub keys, eval,  │
+  │    │                                 SQL concat → exit 2)│
+  │    ├─ debt-scanner.cjs             ─► project DEBT.md    │
+  │    └─ progress-tracker --checkpoint every 10 edits       │
+  │                                      ─► project PROGRESS.md
+  ├─ Bash  ─► self-heal.cjs classify (7 categories)          │
+  │            · fail 1-2: retry hint      ─► next turn ─────┤
+  │            · fail 3:   adapt hint      ─► next turn ─────┤
+  │            · fail 4+:  Telegram escalate                 │
+  │                          (self_heal_escalate event)      │
+  └─ *     ─► context-monitor.cjs                            │
+   │                                                         │
+   ▼                                                         │
+ more turns? ── yes ─────────────────────────────────────────┘
+   │
+   │ no
+   ▼
+ Stop hooks
+  ├─ auto-memory-hook.mjs sync  ─► ~/.claude/projects/<slug>/memory/
+  ├─ progress-tracker.cjs        ─► project PROGRESS.md (session-end)
+  └─ stop-telegram.cjs           ─► Telegram summary
+                                     (tier · files touched · commits)
+```
+
 ## Complexity router
 
 The router (`helpers/router.cjs`, invoked from `hook-handler.cjs route`) classifies every prompt into a tier and — when keywords match — a team.
