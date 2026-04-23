@@ -252,7 +252,5 @@
   },
   "effortLevel": "xhigh",
   "showClearContextOnPlanAccept": true,
-  "skipDangerousModePermissionPrompt": true,
-  "skipAutoPermissionPrompt": true,
   "teammateMode": "tmux"
 }
