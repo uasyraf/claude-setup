@@ -1,0 +1,12 @@
+{
+  "bot_token": "PASTE-BOT-TOKEN-FROM-BOTFATHER",
+  "chat_id": "PASTE-YOUR-CHAT-ID",
+  "events": {
+    "session_end": true,
+    "self_heal_escalate": true,
+    "tier3_milestone": true,
+    "permission_prompt": false
+  },
+  "channels_api": false,
+  "_comment": "Copy to ~/.claude/telegram.json and fill in real values. If channels_api is true, Anthropic Channels handles inbound/outbound natively and this hook only supplements. Requires Max/Team/Enterprise plan for Channels."
+}

@@ -29,6 +29,10 @@ Core roles are used for ad-hoc Tier 3 dispatch. Specialist roles are used within
 | 2 | 3 | 3 | Only when team triggers; otherwise 0 |
 | 3 | 3 | 5 | 3 concurrent max, 5 total across phases |
 
+### Single-file team overrides
+- `security-team` gets `min_complexity: 1` — auth/auth-z/crypto/secret changes always trigger security-reviewer, even on single-file edits
+- `documentation-team` gets `min_complexity: 1` when the request mentions ADRs — single-ADR creation triggers the doc-writer workflow
+
 ### Dispatch Rules
 - Explorers first, in parallel, each with distinct directory scope
 - Plan after context is gathered, not before

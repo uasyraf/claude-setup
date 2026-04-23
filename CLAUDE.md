@@ -127,6 +127,12 @@ Only one team dispatches per task. If a task genuinely spans two team concerns, 
 - Asking obvious or redundant questions already answered by context
 - Spawning agents on startup or before understanding the task
 
+## On every task (automatic loop)
+- **Auto-recall** — `auto-memory-recall.cjs` greps project memory on each prompt and injects top matches as context. Treat recalled lines as load-bearing.
+- **Tracker updates** — `debt-scanner.cjs` logs new `TODO|FIXME|HACK|DEBT` markers to `<project>/DEBT.md` on every edit. `progress-tracker.cjs` logs completed tasks, commits, and touched files to `<project>/PROGRESS.md` at session end.
+- **Self-heal** — on Bash failure, `self-heal.cjs` classifies error and emits a diagnostic. Retry up to 2x with the suggested fix; on 3rd same-category failure, change approach; on 4th, escalate to user.
+- **Effort level** — follow `rules/effort-mapping.md` (Tier 1=low, Tier 2=medium, Tier 3=high, override=xhigh).
+
 ## Autonomy
 - Intent clear -> proceed, no confirmation needed
 - Intent ambiguous -> one sharp question
