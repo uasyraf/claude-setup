@@ -191,6 +191,17 @@
           }
         ]
       }
+    ],
+    "SessionEnd": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash /home/ummar/.claude/scripts/session-summary.sh",
+            "timeout": 5000
+          }
+        ]
+      }
     ]
   },
   "statusLine": {
@@ -252,5 +263,6 @@
   },
   "effortLevel": "xhigh",
   "showClearContextOnPlanAccept": true,
-  "teammateMode": "tmux"
+  "teammateMode": "tmux",
+  "skipAutoPermissionPrompt": true
 }
