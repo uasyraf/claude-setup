@@ -7,10 +7,13 @@
 history.jsonl
 mcp-needs-auth-cache.json
 settings.local.json
+config.json
+stats-cache.json
 cache/
 debug/
 file-history/
 session-env/
+sessions/
 telemetry/
 todos/
 paste-cache/
@@ -20,6 +23,10 @@ plans/
 backups/
 downloads/
 tasks/
+.claude-flow/
+
+# Auto-generated helper bridges
+helpers/auto-memory-bridge.mjs
 
 # Plugin runtime data
 plugins/cache/
