@@ -64,6 +64,19 @@ When multiple teams match a task, select by this priority (first match wins):
 
 Only one team dispatches per task. If a task genuinely spans two team concerns, run the higher-priority team first, then the second as a follow-up.
 
+### Status Banners
+Emit single-line banners to make invisible routing/verification decisions auditable. Minimal by design — two banners max, no prose.
+
+**Pre-action banner** (before first edit/bash on Tier 2+ code work):
+`[T{tier} | team: {name|none} | agents: {used}/{budget}]`
+Example: `[T2 | team: none | agents: 0/3]`
+
+**Post-action banner** (after verification step completes on Tier 2+ code work):
+`[build: {ok|fail|n/a} | tests: {pass/total|n/a} | lint: {ok|fail|n/a}]`
+Example: `[build: ok | tests: 26/28 | lint: ok]`
+
+Skip banners for: Tier 1 work, pure discussion, planning-only responses, read-only investigation.
+
 ## Code Quality Standards
 
 ### Readability First
