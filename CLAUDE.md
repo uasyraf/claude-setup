@@ -25,29 +25,63 @@ Fix before report. Ask once, ask sharp. No tutoring, no hand-holding.
   - Team trigger match: dispatch team (up to 3 members in parallel)
   - Escalate to Tier 3 if scope grows beyond 4 files or 1 domain
 
-### Tier 3: ORCHESTRATED (2-5 agents)
-- Signals: 3+ modules, greenfield feature, architectural decision, 5+ files, full-codebase security audit
-- Action: explore → plan → implement → review → report
-- Parallelism:
-  - Explore: 2-3 agents in parallel (each with distinct directory scope)
-  - Plan: 1 agent (sequential, depends on explore results)
-  - Implement: 1-3 agents in parallel (only on independent file sets)
-  - Review: 1 agent (after all implementation complete)
-- Team trigger match: dispatch full team, lead coordinates member parallelism
+### Tier 3: ORCHESTRATED — Complex Work (Nelson)
+
+Any ONE signal qualifies as Tier 3:
+
+**Scope**
+- 5+ files, 2+ modules, or greenfield feature
+
+**Risk / blast radius**
+- Irreversible action (migration, infra, prod data, force-push)
+- Security, compliance, or auth-surface change
+- Production hot path / high-traffic surface
+- User-visible behaviour with no clean rollback
+
+**Reasoning depth**
+- Architectural decision (pattern, API, schema)
+- Subtle invariants (concurrency, ordering, idempotency)
+- Performance-critical (must measure before changing)
+- Cross-system coordination (3+ services)
+
+**Ambiguity**
+- Outcome unclear after one clarifying question
+- Multiple valid implementations with material trade-offs
+- No precedent in codebase to model from
+
+**User intent**
+- /nelson or "use Nelson"
+- "critical", "high-stakes", "needs review"
+
+Action: invoke /nelson. Nelson owns orchestration (sailing orders → estimate → battle plan → permission gate → action stations → captain's log).
 
 ### Detection Heuristic
-- 1 file = Tier 1
-- 2-4 files in 1 domain = Tier 2
-- 5+ files or 2+ domains = Tier 3
-- Architectural judgment needed = Tier 3
-- Ambiguous scope = Tier 2 (escalate if complexity reveals itself)
+
+Router (router.cjs) emits a baseline tier from word/file/domain count. That tier is a **floor**, not a verdict.
+
+- 1 file with no qualitative signals = Tier 1
+- 2-4 files in 1 domain with no qualitative signals = Tier 2
+- 5+ files or 2+ domains = Tier 3 (scope alone qualifies)
+- ANY qualitative Tier 3 signal present = promote to Tier 3, regardless of file count
+- The LLM may only PROMOTE the router's tier, never demote
+- Promotion must be announced in the pre-action banner
 
 ### Tier-Team Integration
-- File-count heuristic sets the **base tier**
-- Team `min_complexity` is a **file count threshold** — team only triggers when affected files >= min_complexity
-- Tier is derived from file count after team elevation: 1 = Tier 1, 2-4 = Tier 2, 5+ = Tier 3
-- If a team triggers, the team IS the agent dispatch (not a separate decision)
-- Non-team work stays agent-free (main agent handles it)
+
+- Tier 1: main agent, no team, no Nelson
+- Tier 2 + team match: dispatch the team (unchanged fast-path)
+- Tier 2 + no team match: main agent
+- Tier 3 (any signal): invoke /nelson (unless a Nelson mission is already
+  active per `.nelson/.active-*` marker — in that case, resume)
+  - If a team also matched: append a natural-language crew suggestion to the
+    mission brief (e.g. "matches security-team — suggest destroyer with
+    red-cell navigator, security-reviewer, coder, reviewer"). Nelson still
+    owns final mode + crew selection via squadron-composition.md
+  - If no team matched: Nelson picks crew per references/crew-roles.md
+- Nelson auto-activates on its own pattern matches; our promotion rule is an
+  explicit safety net, not a replacement
+- Nelson's Step 5 (Get Permission to Sail) is always honoured — interactive
+  gate only, never `--auto-approve`
 
 ### Team Selection Priority
 When multiple teams match a task, select by this priority (first match wins):
@@ -68,8 +102,13 @@ Only one team dispatches per task. If a task genuinely spans two team concerns, 
 Emit single-line banners to make invisible routing/verification decisions auditable. Minimal by design — two banners max, no prose.
 
 **Pre-action banner** (before first edit/bash on Tier 2+ code work):
-`[T{tier} | team: {name|none} | agents: {used}/{budget}]`
-Example: `[T2 | team: none | agents: 0/3]`
+`[T{router-tier}→{final-tier} | team: {name|none} | orchestrator: {nelson|main|team:NAME} | promoted: {signal|no}]`
+
+Examples:
+- `[T1→T1 | team: none | orchestrator: main | promoted: no]`
+- `[T2→T2 | team: security-team | orchestrator: team:security-team | promoted: no]`
+- `[T1→T3 | team: none | orchestrator: nelson | promoted: irreversible-migration]`
+- `[T2→T3 | team: security-team | orchestrator: nelson | promoted: auth-surface]`
 
 **Post-action banner** (after verification step completes on Tier 2+ code work):
 `[build: {ok|fail|n/a} | tests: {pass/total|n/a} | lint: {ok|fail|n/a}]`
@@ -133,14 +172,14 @@ Skip banners for: Tier 1 work, pure discussion, planning-only responses, read-on
 - Dispatching agents for Tier 1 work
 - Verbose explanations when a one-liner suffices
 - Reporting errors without attempting fix
-- Exceeding tier agent budget — Tier 1: 0, Tier 2: 0 (3 if team), Tier 3: 5 total
+- Exceeding tier agent budget — Tier 1: 0, Tier 2: 0 (3 if team), Tier 3: governed by Nelson's squadron cap (10 squadron-level)
+- Defaulting to ad-hoc multi-agent dispatch at Tier 3 — Nelson is the orchestrator
 - Defaulting to agreement when the user is wrong — push back with evidence
 - Asking obvious or redundant questions already answered by context
 - Spawning agents on startup or before understanding the task
 
 ## On every task (automatic loop)
 - **Auto-recall** — `auto-memory-recall.cjs` greps project memory on each prompt and injects top matches as context. Treat recalled lines as load-bearing.
-- **Tracker updates** — `debt-scanner.cjs` logs new `TODO|FIXME|HACK|DEBT` markers to `<project>/DEBT.md` on every edit. `progress-tracker.cjs` logs completed tasks, commits, and touched files to `<project>/PROGRESS.md` at session end.
 - **Self-heal** — on Bash failure, `self-heal.cjs` classifies error and emits a diagnostic. Retry up to 2x with the suggested fix; on 3rd same-category failure, change approach; on 4th, escalate to user.
 - **Effort level** — follow `rules/effort-mapping.md` (Tier 1=low, Tier 2=medium, Tier 3=high, override=xhigh).
 
