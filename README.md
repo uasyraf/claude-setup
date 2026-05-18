@@ -5,7 +5,7 @@ This directory is the **global** Claude Code configuration — reusable machiner
 ## Design principles
 
 1. **Global-first** — universal logic lives at `~/.claude/`; projects only hold domain context + optional overrides.
-2. **Proportional intelligence** — features activate by tier. Tier 1 runs with zero overhead; Tier 3 dispatches specialist teams.
+2. **Proportional intelligence** — features activate by tier. Tier 1 runs with zero overhead; Tier 2 dispatches specialist teams; Tier 3 invokes Nelson for orchestrated missions with a permission gate.
 3. **Background-first** — memory updates, trackers, notifications, self-healing all run silently via hooks.
 4. **No invented tooling** — the router, teams, memory, and escalation patterns are grounded in documented Claude Code hook APIs and established practice.
 5. **Cite before you code** — rules files encode SOLID, Clean Code, Refactoring Guru, and language-native style guides (PEP 8, Airbnb JS, Google Java).
@@ -24,8 +24,7 @@ This directory is the **global** Claude Code configuration — reusable machiner
 | `commands/` | Slash-command definitions |
 | `hooks/` | Event hooks (see table below) |
 | `helpers/` | Shared helper modules for hooks: `hook-handler.cjs`, `router.cjs`, `quality-gate.cjs`, `auto-memory-hook.mjs`, `statusline.cjs` |
-| `templates/` | `adr/template.md` (Nygard), `changelog/CHANGELOG.md` (Keep a Changelog 1.1.0), `docs/README.md` (Diátaxis), `progress/PROGRESS.md`, `project-claude.md`, `telegram-config-example.json` |
-| `trackers/` | Schema docs for auto-written `PROGRESS.md` and `DEBT.md` |
+| `templates/` | `adr/template.md` (Nygard), `changelog/CHANGELOG.md` (Keep a Changelog 1.1.0), `docs/README.md` (Diátaxis), `project-claude.md`, `telegram-config-example.json` |
 | `scripts/` | One-shot utilities (e.g. `migrate-project-claude.sh`) |
 | `projects/<slug>/memory/` | Per-project auto-memory snapshots — gitignored |
 | `plans/` | Plan-mode artifacts — gitignored |
@@ -41,11 +40,9 @@ This directory is the **global** Claude Code configuration — reusable machiner
 | `PreToolUse Task` | `auto-memory-recall.cjs` | Mid-task recall before subagent dispatch (60s debounced) |
 | `PostToolUse Write\|Edit\|MultiEdit` | `hook-handler.cjs post-edit` | Record edit metrics |
 | `PostToolUse Write\|Edit\|MultiEdit` | `quality-gate.cjs` | Critical-severity secret/eval/SQL block; advisory SOLID checklist |
-| `PostToolUse Write\|Edit\|MultiEdit` | `debt-scanner.cjs` | Append `TODO`/`FIXME`/`HACK`/`DEBT` markers to `<project>/DEBT.md` |
-| `PostToolUse Write\|Edit\|MultiEdit` | `progress-tracker.cjs --checkpoint` | Flush a `PROGRESS.md` row every 10 edits per session |
 | `PostToolUse Bash` | `self-heal.cjs` | Classify Bash failures; emit diagnostic; escalate to Telegram after 3rd same-category failure |
 | `PostToolUse *` | `context-monitor.cjs` | Track context window usage |
-| `Stop` | `auto-memory-hook.mjs sync` + `progress-tracker.cjs` + `stop-telegram.cjs` | Sync memory; write session-end `PROGRESS.md` entry; notify Telegram with files/commits summary |
+| `Stop` | `auto-memory-hook.mjs sync` + `stop-telegram.cjs` | Sync memory; notify Telegram with files/commits summary |
 | `PreCompact manual\|auto` | `hook-handler.cjs compact-manual\|compact-auto` | Guide what to preserve/drop before compaction |
 
 ### Session flow
@@ -58,7 +55,7 @@ flowchart TD
 
     R -->|Tier 1| T1[Main agent only<br/>effort=low]
     R -->|Tier 2| T2[Main agent or team<br/>effort=medium]
-    R -->|Tier 3 + team| T3[Team lead + members<br/>effort=high]
+    R -->|Tier 3| T3[Nelson orchestrator<br/>battle plan + permission gate<br/>effort=high]
 
     T1 --> TOOL{Tool call}
     T2 --> TOOL
@@ -72,13 +69,11 @@ flowchart TD
     PB -->|ok| EXEC
     PT --> EXEC
 
-    EXEC -->|Write/Edit| POSTE[PostToolUse Write/Edit<br/>post-edit · quality-gate<br/>debt-scanner · progress --checkpoint]
+    EXEC -->|Write/Edit| POSTE[PostToolUse Write/Edit<br/>post-edit · quality-gate]
     EXEC -->|Bash| POSTB[PostToolUse Bash<br/>self-heal classify]
     EXEC -->|*| CTX[context-monitor]
 
     POSTE -->|critical secret/eval/SQL| ESC
-    POSTE --> DEBT[(project DEBT.md)]
-    POSTE --> PROGC[(project PROGRESS.md<br/>checkpoint every 10 edits)]
 
     POSTB -->|fail 1-2| RETRY[Emit retry hint]
     POSTB -->|fail 3| ADAPT[Emit change-approach hint]
@@ -89,10 +84,9 @@ flowchart TD
 
     EXEC --> DONE{more turns?}
     DONE -->|yes| U
-    DONE -->|no| STOP[Stop hooks<br/>memory sync<br/>progress session-end<br/>stop-telegram]
+    DONE -->|no| STOP[Stop hooks<br/>memory sync<br/>stop-telegram]
 
     STOP --> MEM[(~/.claude/projects/slug/memory)]
-    STOP --> PROGE[(project PROGRESS.md)]
     STOP --> TGS[Telegram<br/>session_end summary]
 ```
 
@@ -111,14 +105,15 @@ For viewers that don't render Mermaid:
   ├─ hook-handler.cjs route                                  │
   │    emits [TIER:1|2|3]  [AGENT]  [TEAM]  [EFFORT]         │
   └─ auto-memory-recall.cjs                                  │
-       injects ≤2KB from MEMORY.md, CLAUDE.md,               │
-       PROGRESS.md, DEBT.md                                  │
+       injects ≤2KB from MEMORY.md, CLAUDE.md                │
    │                                                         │
    ▼                                                         │
  Claude turn                                                 │
   ├─ Tier 1: main agent only           (effort=low)          │
   ├─ Tier 2: main agent or team        (effort=medium)       │
-  └─ Tier 3 + team: lead dispatches    (effort=high)         │
+  └─ Tier 3: /nelson orchestrator      (effort=high)         │
+       · sailing orders → battle plan → permission gate      │
+       · action stations → captain's log                     │
    │                                                         │
    ▼                                                         │
  Tool call                                                   │
@@ -135,13 +130,10 @@ For viewers that don't render Mermaid:
  Tool executes  ─►  PostToolUse                              │
   ├─ Write/Edit                                              │
   │    ├─ hook-handler post-edit       (metrics)             │
-  │    ├─ quality-gate.cjs             (block on CRITICAL:   │
-  │    │                                 AWS/OpenAI/Stripe/  │
-  │    │                                 GitHub keys, eval,  │
-  │    │                                 SQL concat → exit 2)│
-  │    ├─ debt-scanner.cjs             ─► project DEBT.md    │
-  │    └─ progress-tracker --checkpoint every 10 edits       │
-  │                                      ─► project PROGRESS.md
+  │    └─ quality-gate.cjs             (block on CRITICAL:   │
+  │                                     AWS/OpenAI/Stripe/   │
+  │                                     GitHub keys, eval,   │
+  │                                     SQL concat → exit 2) │
   ├─ Bash  ─► self-heal.cjs classify (7 categories)          │
   │            · fail 1-2: retry hint      ─► next turn ─────┤
   │            · fail 3:   adapt hint      ─► next turn ─────┤
@@ -156,7 +148,6 @@ For viewers that don't render Mermaid:
    ▼
  Stop hooks
   ├─ auto-memory-hook.mjs sync  ─► ~/.claude/projects/<slug>/memory/
-  ├─ progress-tracker.cjs        ─► project PROGRESS.md (session-end)
   └─ stop-telegram.cjs           ─► Telegram summary
                                      (tier · files touched · commits)
 ```
@@ -165,11 +156,13 @@ For viewers that don't render Mermaid:
 
 The router (`helpers/router.cjs`, invoked from `hook-handler.cjs route`) classifies every prompt into a tier and — when keywords match — a team.
 
-| Tier | Signals | Effort | Agents |
-|------|---------|--------|--------|
-| 1 DIRECT | 1 file, single-edit, question, typo, config tweak | `low` | 0 |
-| 2 GUIDED | 2–4 files in one domain, feature addition, debugging | `medium` | 0 default, up to 3 if a team triggers |
-| 3 ORCHESTRATED | 5+ files, 2+ domains, greenfield, architectural decision | `high` | Up to 5 total, 3 concurrent |
+| Tier | Signals | Effort | Orchestrator |
+|------|---------|--------|--------------|
+| 1 DIRECT | 1 file, single-edit, question, typo, config tweak | `low` | Main agent (0 dispatched) |
+| 2 GUIDED | 2–4 files in one domain, feature addition, debugging | `medium` | Main agent, or team (up to 3) on keyword match |
+| 3 ORCHESTRATED | 5+ files, 2+ domains, OR any qualitative signal (irreversible action, security/auth surface, subtle invariant, architectural decision, multiple valid trade-offs) | `high` | Nelson — squadron cap (10 squadron-level + crew), permission-gated |
+
+The router's tier is a **floor**, not a verdict. The LLM may promote upward when it detects a qualitative Tier 3 signal even on a single-file change (e.g. a migration script, an auth tweak). Promotion is announced in the pre-action banner: `[T1→T3 | team: none | orchestrator: nelson | promoted: irreversible-migration]`. The LLM may not demote.
 
 `effortLevel: xhigh` in `settings.json` overrides everything — the router detects that and skips the automatic write. Remove the global `xhigh` setting to let tier-proportional effort take over. Manual override: `/effort <level>`.
 
@@ -192,6 +185,8 @@ Teams live in `teams/*.md` with frontmatter `name/description/lead/trigger/min_c
 
 When a team triggers, the router prints `[TEAM] <name> — lead: X — members: a, b, c` into the prompt context and Claude delegates via the `Agent` tool with those subagent types.
 
+At **Tier 3** a matched team is passed to Nelson as a natural-language crew suggestion in the mission brief rather than dispatched directly. Nelson still owns final mode + crew selection per its `squadron-composition.md`.
+
 ## Memory
 
 Two layers, kept simple:
@@ -203,25 +198,12 @@ Two layers, kept simple:
 `hooks/auto-memory-recall.cjs` runs on both `UserPromptSubmit` and `PreToolUse Task`:
 
 - Extracts up to 8 keywords from the prompt (stopword-filtered, length > 2)
-- Scores `~/.claude/projects/<slug>/memory/*.md`, `<cwd>/CLAUDE.md`, `<cwd>/PROGRESS.md`, `<cwd>/DEBT.md`
+- Scores `~/.claude/projects/<slug>/memory/*.md`, `<cwd>/CLAUDE.md`
 - Injects top 5 snippets (≤ 2 KB total) via `additionalContext`
 - Debounced 60 s per session on the `Task` matcher so subagent fan-out doesn't re-inject
 
 ### claude-mem (disabled)
 `claude-mem@thedotmack` is installed but disabled in `settings.json` (documented orphan-process / memory-leak / unauthenticated HTTP API issues). Native MEMORY.md + grep recall is the current primary. Re-enabling is a one-flag change once upstream stabilises — or swap for a successor (Mem0, Letta).
-
-## Trackers
-
-### `PROGRESS.md` (per project)
-Written by `hooks/progress-tracker.cjs`. Two modes:
-
-- **Session-end** (Stop hook): extracts `TaskUpdate(completed)`, recent git commits, and modified files; writes a timestamped section above the `<!-- AUTO-PROGRESS-END -->` sentinel.
-- **Checkpoint** (`--checkpoint` on every Write/Edit/MultiEdit): per-session edit counter in `/tmp`. Every 10 edits, flushes a compact `### <ts> — checkpoint` row with files touched.
-
-Rotates into `PROGRESS-archive.md` after 100 live entries. Never creates `PROGRESS.md` in `$HOME` or under `~/.claude/`.
-
-### `DEBT.md` (per project)
-Written by `hooks/debt-scanner.cjs` on every Write/Edit/MultiEdit. Detects `TODO|FIXME|HACK|XXX|DEBT|TECHDEBT|KLUDGE` markers with HIGH/MEDIUM/LOW severity. Deduped by `file:line`. Schema lives in `trackers/debt-schema.md`.
 
 ## Self-healing
 
@@ -373,8 +355,6 @@ bash ~/.claude/scripts/migrate-project-claude.sh -y /path/to/project  # apply
 | Effort auto-apply | Send a Tier 1 prompt | `[EFFORT:xhigh] (global override active)` — remove `effortLevel` from `settings.json` to let router set `low`/`medium`/`high` into `settings.local.json` |
 | Auto-recall (prompt) | `echo '{"prompt":"chiaki wake","cwd":"'"$HOME"'"}' \| node ~/.claude/hooks/auto-memory-recall.cjs` | JSON with `additionalContext` referencing chiaki memory |
 | Auto-recall (task) | `echo '{"tool_name":"Task","tool_input":{"prompt":"chiaki wake"},"cwd":"'"$HOME"'","session_id":"test"}' \| node ~/.claude/hooks/auto-memory-recall.cjs` | Same, with `hookEventName: "PreToolUse"` |
-| Debt scanner | Add `// TODO: foo` to a test file in a git project | New row in project `DEBT.md` |
-| Progress checkpoint | Make 10 edits in a project | New `### <ts> — checkpoint` row in `PROGRESS.md` |
 | Self-heal | Run a failing Bash command | `additionalContext` with `Stage: retry 1/2` + category hint |
 | Destructive gate | `git reset --hard origin/main` via Bash tool | `[BLOCKED] Destructive command detected: git reset --hard`, exit 1 |
 | Quality gate (critical) | Write a `.py` file containing `api_key = "sk-live-abcdefghijklmnop1234567890"` | `[CRITICAL] OpenAI-style API key detected`, exit 2 |
