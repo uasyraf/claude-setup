@@ -5,6 +5,12 @@
 telegram.json
 
 # Ephemeral/local state
+.last-cleanup
+.last-update-result.json
+teams/session-*/
+daemon/
+jobs/*
+!jobs/pins.json
 history.jsonl
 mcp-needs-auth-cache.json
 settings.local.json
