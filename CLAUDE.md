@@ -10,6 +10,12 @@ Fix before report. Ask once, ask sharp. No tutoring, no hand-holding.
 - First-principles thinking — derive from constraints, not convention
 - Self-heal — fix errors before reporting them
 
+## Output Humanization (mandatory)
+- ALWAYS invoke the `humanizer:humanizer` skill before delivering any user-facing prose (explanations, summaries, PR/commit bodies, docs, reports, messages).
+- Apply it to the final draft so output is free of AI tells: inflated symbolism, promotional language, em-dash overuse, rule-of-three padding, AI vocabulary, negative parallelisms, vague attributions, filler.
+- Exempt: raw code, code comments, terminal commands, file paths, structured data (JSON/tables), and direct tool output. Humanize only natural-language prose.
+- This is a standing directive — no need to announce the skill each time; just ship humanized prose.
+
 ## Complexity Router
 
 ### Tier 1: DIRECT (0 agents)
@@ -25,7 +31,7 @@ Fix before report. Ask once, ask sharp. No tutoring, no hand-holding.
   - Team trigger match: dispatch team (up to 3 members in parallel)
   - Escalate to Tier 3 if scope grows beyond 4 files or 1 domain
 
-### Tier 3: ORCHESTRATED — Complex Work (Nelson)
+### Tier 3: ORCHESTRATED — Complex Work (Agent Team)
 
 Any ONE signal qualifies as Tier 3:
 
@@ -50,10 +56,15 @@ Any ONE signal qualifies as Tier 3:
 - No precedent in codebase to model from
 
 **User intent**
-- /nelson or "use Nelson"
+- "use a team", "orchestrate this", "agent team"
 - "critical", "high-stakes", "needs review"
 
-Action: invoke /nelson. Nelson owns orchestration (sailing orders → estimate → battle plan → permission gate → action stations → captain's log).
+Action: form an **Agent Team** using the harness's built-in team feature. The main agent is team lead: gather → plan → permission gate → spawn **named** teammates via the `Agent` tool → teammates coordinate directly → verify → report.
+
+- Spawn each teammate with a `name` (e.g. `Agent({name: "reviewer", subagent_type: "reviewer", ...})`) so it is addressable and resumable.
+- Teammates coordinate peer-to-peer via `SendMessage` (by name) and a shared `TaskList` — assign work with `TaskCreate` + `TaskUpdate` `owner`, not by the lead relaying every message.
+- Batch all initial teammate spawns in ONE message for parallelism.
+- Don't poll teammates — they reach out via `SendMessage`/task-notification when done.
 
 ### Detection Heuristic
 
@@ -68,20 +79,19 @@ Router (router.cjs) emits a baseline tier from word/file/domain count. That tier
 
 ### Tier-Team Integration
 
-- Tier 1: main agent, no team, no Nelson
+- Tier 1: main agent, no team
 - Tier 2 + team match: dispatch the team (unchanged fast-path)
 - Tier 2 + no team match: main agent
-- Tier 3 (any signal): invoke /nelson (unless a Nelson mission is already
-  active per `.nelson/.active-*` marker — in that case, resume)
-  - If a team also matched: append a natural-language crew suggestion to the
-    mission brief (e.g. "matches security-team — suggest destroyer with
-    red-cell navigator, security-reviewer, coder, reviewer"). Nelson still
-    owns final mode + crew selection via squadron-composition.md
-  - If no team matched: Nelson picks crew per references/crew-roles.md
-- Nelson auto-activates on its own pattern matches; our promotion rule is an
-  explicit safety net, not a replacement
-- Nelson's Step 5 (Get Permission to Sail) is always honoured — interactive
-  gate only, never `--auto-approve`
+- Tier 3 (any signal): form an Agent Team with the main agent as lead.
+  - If a team profile matched (security-team, feature-team, etc.): use its role
+    list as the crew (e.g. security-team → security-reviewer, coder, reviewer).
+  - If no team matched: the lead selects crew per `rules/agent-dispatch.md` core
+    roles (Explorer → Plan → coder → reviewer).
+- Spawn all crew as named teammates via the `Agent` tool, batched in one message
+  for parallelism, within the Tier 3 agent budget. Teammates coordinate via
+  `SendMessage` + shared `TaskList`.
+- Permission gate is always honoured — present the plan and get approval before
+  dispatching implementation crew. Never auto-approve on the user's behalf.
 
 ### Team Selection Priority
 When multiple teams match a task, select by this priority (first match wins):
@@ -102,13 +112,13 @@ Only one team dispatches per task. If a task genuinely spans two team concerns, 
 Emit single-line banners to make invisible routing/verification decisions auditable. Minimal by design — two banners max, no prose.
 
 **Pre-action banner** (before first edit/bash on Tier 2+ code work):
-`[T{router-tier}→{final-tier} | team: {name|none} | orchestrator: {nelson|main|team:NAME} | promoted: {signal|no}]`
+`[T{router-tier}→{final-tier} | team: {name|none} | orchestrator: {main|team:NAME} | promoted: {signal|no}]`
 
 Examples:
 - `[T1→T1 | team: none | orchestrator: main | promoted: no]`
 - `[T2→T2 | team: security-team | orchestrator: team:security-team | promoted: no]`
-- `[T1→T3 | team: none | orchestrator: nelson | promoted: irreversible-migration]`
-- `[T2→T3 | team: security-team | orchestrator: nelson | promoted: auth-surface]`
+- `[T1→T3 | team: none | orchestrator: team:main-lead | promoted: irreversible-migration]`
+- `[T2→T3 | team: security-team | orchestrator: team:security-team | promoted: auth-surface]`
 
 **Post-action banner** (after verification step completes on Tier 2+ code work):
 `[build: {ok|fail|n/a} | tests: {pass/total|n/a} | lint: {ok|fail|n/a}]`
@@ -149,6 +159,12 @@ Skip banners for: Tier 1 work, pure discussion, planning-only responses, read-on
 10. Clean up after yourself -- remove unused imports/vars from your changes
 11. Verify before done -- run tests/lint/build after implementation; unverified code is not complete
 
+## Git Commits
+- NEVER append a `Co-Authored-By: Claude ...` trailer to commit messages
+- NEVER add "Generated with Claude Code" or any Claude attribution to commits or PR bodies
+- Write the commit message body only; stop before any AI attribution footer
+- Applies globally to every repo unless the user explicitly asks for the trailer in this session
+
 ## Memory (2-layer strategy)
 
 ### Layer 1: Native (always)
@@ -172,11 +188,12 @@ Skip banners for: Tier 1 work, pure discussion, planning-only responses, read-on
 - Dispatching agents for Tier 1 work
 - Verbose explanations when a one-liner suffices
 - Reporting errors without attempting fix
-- Exceeding tier agent budget — Tier 1: 0, Tier 2: 0 (3 if team), Tier 3: governed by Nelson's squadron cap (10 squadron-level)
-- Defaulting to ad-hoc multi-agent dispatch at Tier 3 — Nelson is the orchestrator
+- Exceeding tier agent budget — Tier 1: 0, Tier 2: 0 (3 if team), Tier 3: 10 concurrent agents max
+- Dispatching implementation crew before the Tier 3 permission gate is approved
 - Defaulting to agreement when the user is wrong — push back with evidence
 - Asking obvious or redundant questions already answered by context
 - Spawning agents on startup or before understanding the task
+- Adding `Co-Authored-By: Claude` or any Claude attribution to commit messages or PR bodies
 
 ## On every task (automatic loop)
 - **Auto-recall** — `auto-memory-recall.cjs` greps project memory on each prompt and injects top matches as context. Treat recalled lines as load-bearing.

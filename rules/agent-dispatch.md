@@ -5,7 +5,7 @@
 | Role | subagent_type | When |
 |------|--------------|------|
 | Explorer | `Explore` | Context gathering, codebase discovery |
-| Planner | `Plan` | Design decisions, implementation strategy (used by Nelson during Battle Plan) |
+| Planner | `Plan` | Design decisions, implementation strategy (used by the team lead during planning) |
 | Implementer | `coder` | Write/edit code, wire integrations |
 | Reviewer | `reviewer` | Code review, verify correctness |
 
@@ -19,7 +19,7 @@
 | Security Reviewer | `security-reviewer` | OWASP, secrets, auth/authz, CVE scanning |
 | Challenger | `challenger` | Adversarial analysis, failure modes, edge cases |
 
-Core roles are dispatched by Nelson during Tier 3 missions (its captains and crew use these `subagent_type`s). Main-agent ad-hoc dispatch of core roles at Tier 3 is prohibited — see `### Dispatch Rules`. Specialist roles are used within team definitions at Tier 2. Teams substitute the Planner role with the team lead (usually Architect) who handles planning implicitly as part of their workflow.
+Core roles are dispatched by the Agent Team lead during Tier 3 work (the lead uses these `subagent_type`s for its crew). Specialist roles are used within team definitions at Tier 2 and Tier 3. Teams substitute the Planner role with the team lead (usually Architect) who handles planning implicitly as part of their workflow.
 
 ### Agent Budget by Tier
 
@@ -27,7 +27,7 @@ Core roles are dispatched by Nelson during Tier 3 missions (its captains and cre
 |------|--------------|---------------|--------------|-------|
 | 1 | Main agent | 0 | 0 | No dispatch |
 | 2 | Main agent or team | 3 | 3 | Team only when triggers match |
-| 3 | Nelson | Nelson squadron cap | 10 squadron-level + crew | Nelson owns parallelism within its limits |
+| 3 | Agent Team — built-in (lead + named teammates) | 10 | 10 | Named teammates coordinate via SendMessage + shared TaskList; batch spawns in one message |
 
 ### Single-file team overrides
 - `security-team` gets `min_complexity: 1` — auth/auth-z/crypto/secret changes always trigger security-reviewer, even on single-file edits
@@ -38,39 +38,29 @@ Core roles are dispatched by Nelson during Tier 3 missions (its captains and cre
 - Tier 1: main agent only
 - Tier 2 + team match: team lead owns parallelism within budget
 - Tier 2 + no team match: main agent only
-- Tier 3: invoke /nelson; Nelson handles all explore/plan/implement/review phases
-  via its 8-step framework. Do NOT dispatch ad-hoc Explore/Plan/Implementer/Reviewer
-  agents at Tier 3 — Nelson's captains and crew replace them.
-- If a team matched at Tier 3, pass the team's role list to Nelson as the crew
-  hint for the primary captain.
+- Tier 3: form an Agent Team using the harness's built-in team feature, with the
+  main agent as lead. The lead runs explore → plan → permission gate → implement →
+  review, spawning named teammates that coordinate peer-to-peer.
+- If a team profile matched at Tier 3, use its role list as the crew.
 
-### Nelson invocation contract
+### Agent Team contract (Tier 3, built-in team feature)
 
-Nelson auto-activates on its own pattern matches (per its SKILL.md description).
-Our promotion rule is an EXPLICIT belt-and-braces trigger — it does not replace
-Nelson's self-activation. If Nelson is already active, do not re-invoke.
+When promoting to Tier 3, the main agent (team lead):
+1. Emits the pre-action banner with the promotion signal
+2. Gathers context — spawn `Explore` teammates for discovery, or explore directly
+3. Plans the work — via EnterPlanMode or a `Plan` agent — into ordered, file-scoped steps
+4. Presents the plan and gets the user's approval (permission gate) BEFORE
+   spawning any implementation teammates
+5. Spawns crew as **named** teammates via the `Agent` tool (`coder`, `reviewer`,
+   specialists as needed), each with a `name`, batched in one message for
+   parallelism, within the 10-agent budget
+6. Teammates coordinate directly: `SendMessage` by name for hand-offs, shared
+   `TaskList` (`TaskCreate` + `TaskUpdate` `owner`) for work assignment. The lead
+   does not relay every message. Do not poll — teammates report via
+   `SendMessage`/task-notification.
+7. Verifies the result (tests/lint/build) and reports
 
-When promoting to Tier 3, the main agent:
-1. Emits the pre-action banner with promotion signal
-2. Checks for an active mission marker: `ls .nelson/.active-* 2>/dev/null`.
-   - If present: resume per Nelson's session-resumption flow
-     (`references/damage-control/session-resumption.md`); do NOT start a fresh mission
-   - If absent: proceed to invoke
-3. Invokes /nelson with the user's original request as the mission brief
-4. If a team matched, append a natural-language crew suggestion to the brief
-   (e.g. "This mission matches our security-team — suggest forming a destroyer
-   with red-cell navigator, security-reviewer, coder, reviewer"). Use Nelson's
-   documented phrase "Use an agent team with Nelson to..." when explicitly
-   forcing agent-team mode. Do NOT invent structured fields like `crew-hint:`
-   — Nelson takes natural-language briefs
-5. Hands control to Nelson — does not perform implementation work directly
-   thereafter (matches Nelson's `admiral-at-the-helm` standing order)
-
-Always use the interactive Step 5 permission gate. Do NOT invoke Nelson with
-`nelson-data.py headless --auto-approve` — the user's review gate is the whole
-point of the promotion.
-
-The main agent does NOT pre-approve the plan on the user's behalf.
+The team lead does NOT pre-approve the plan on the user's behalf.
 
 ### Invocation Protocol
 Every agent dispatch includes:

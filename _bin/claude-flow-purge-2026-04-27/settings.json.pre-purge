@@ -79,6 +79,26 @@
         ]
       },
       {
+        "matcher": "Write|Edit|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node /home/ummar/.claude/hooks/debt-scanner.cjs",
+            "timeout": 3000
+          }
+        ]
+      },
+      {
+        "matcher": "Write|Edit|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node /home/ummar/.claude/hooks/progress-tracker.cjs --checkpoint",
+            "timeout": 3000
+          }
+        ]
+      },
+      {
         "matcher": "Bash",
         "hooks": [
           {
@@ -95,16 +115,6 @@
             "type": "command",
             "command": "node /home/ummar/.claude/hooks/context-monitor.cjs",
             "timeout": 3000
-          }
-        ]
-      },
-      {
-        "matcher": "Edit|Write|MultiEdit",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "npx -y @uasyraf/helm hook post-tool-use 2>/dev/null # helm: PostToolUse",
-            "timeout": 5
           }
         ]
       }
@@ -132,16 +142,11 @@
             "type": "command",
             "command": "node /home/ummar/.claude/helpers/hook-handler.cjs session-restore",
             "timeout": 15000
-          }
-        ]
-      },
-      {
-        "matcher": "*",
-        "hooks": [
+          },
           {
             "type": "command",
-            "command": "npx -y @uasyraf/helm banner 2>/dev/null # helm: SessionStart",
-            "timeout": 5
+            "command": "node /home/ummar/.claude/helpers/auto-memory-hook.mjs import",
+            "timeout": 8000
           }
         ]
       }
@@ -149,6 +154,16 @@
     "Stop": [
       {
         "hooks": [
+          {
+            "type": "command",
+            "command": "node /home/ummar/.claude/helpers/auto-memory-hook.mjs sync",
+            "timeout": 10000
+          },
+          {
+            "type": "command",
+            "command": "node /home/ummar/.claude/hooks/progress-tracker.cjs",
+            "timeout": 5000
+          },
           {
             "type": "command",
             "command": "node /home/ummar/.claude/hooks/stop-telegram.cjs",
@@ -176,6 +191,17 @@
           }
         ]
       }
+    ],
+    "SessionEnd": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash /home/ummar/.claude/scripts/session-summary.sh",
+            "timeout": 5000
+          }
+        ]
+      }
     ]
   },
   "statusLine": {
@@ -195,10 +221,7 @@
     "debugging-toolkit@claude-code-workflows": true,
     "agent-orchestration@claude-code-workflows": true,
     "backend-development@claude-code-workflows": true,
-    "telegram@claude-plugins-official": true,
-    "nelson@nelson-marketplace": true,
-    "atlassian@claude-plugins-official": true,
-    "humanizer@humanizer": true
+    "telegram@claude-plugins-official": true
   },
   "extraKnownMarketplaces": {
     "thedotmack": {
@@ -236,31 +259,11 @@
         "source": "github",
         "repo": "wshobson/agents"
       }
-    },
-    "nelson-marketplace": {
-      "source": {
-        "source": "github",
-        "repo": "aspegio/nelson"
-      }
-    },
-    "humanizer": {
-      "source": {
-        "source": "github",
-        "repo": "uasyraf/humanizer"
-      }
     }
   },
   "effortLevel": "xhigh",
   "showClearContextOnPlanAccept": true,
-  "tui": "fullscreen",
-  "voice": {
-    "enabled": true,
-    "mode": "hold"
-  },
-  "skipDangerousModePermissionPrompt": true,
-  "autoCompactEnabled": false,
-  "teammateMode": "tmux",
-  "agentPushNotifEnabled": true,
   "skipAutoPermissionPrompt": true,
-  "voiceEnabled": true
+  "teammateMode": "tmux",
+  "autoCompactEnabled": false
 }

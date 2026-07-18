@@ -9,8 +9,6 @@
  * Sources scanned (in order):
  *   1. ~/.claude/projects/<slug>/memory/MEMORY.md and individual memory files
  *   2. <project_cwd>/CLAUDE.md (domain memory)
- *   3. <project_cwd>/PROGRESS.md (recent milestones)
- *   4. <project_cwd>/DEBT.md (tracked debt — so model avoids compounding)
  *
  * Output contract: writes a short markdown block to stdout that Claude Code
  * appends to the prompt as system context.
@@ -73,8 +71,8 @@ function candidateMemoryFiles(cwd) {
     }
   }
 
-  // Per-project trackers + domain file
-  for (const f of ['CLAUDE.md', 'PROGRESS.md', 'DEBT.md']) {
+  // Per-project domain file
+  for (const f of ['CLAUDE.md']) {
     const p = path.join(cwd, f);
     if (fs.existsSync(p)) candidates.push(p);
   }
