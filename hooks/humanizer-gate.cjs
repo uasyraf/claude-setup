@@ -28,6 +28,11 @@ function readTranscript(file) {
 
 function isRealUserTurn(e) {
   if (e?.type !== 'user') return false;
+  // Injected meta messages (skill bodies, hook feedback, slash-command stdout)
+  // carry isMeta:true. They are not genuine prompts, so they must not reset the
+  // turn boundary — otherwise the humanizer skill body, injected as a user
+  // message after the Skill call, would hide that call from ranHumanizer().
+  if (e?.isMeta === true) return false;
   const c = e?.message?.content;
   if (typeof c === 'string') return true;
   if (Array.isArray(c)) return !c.some(i => i?.type === 'tool_result');
