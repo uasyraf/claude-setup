@@ -155,6 +155,15 @@
             "timeout": 5000
           }
         ]
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node /home/ummar/.claude/hooks/humanizer-gate.cjs",
+            "timeout": 5000
+          }
+        ]
       }
     ],
     "PreCompact": [

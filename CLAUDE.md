@@ -14,7 +14,7 @@ Fix before report. Ask once, ask sharp. No tutoring, no hand-holding.
 - ALWAYS invoke the `humanizer:humanizer` skill before delivering any user-facing prose (explanations, summaries, PR/commit bodies, docs, reports, messages).
 - Apply it to the final draft so output is free of AI tells: inflated symbolism, promotional language, em-dash overuse, rule-of-three padding, AI vocabulary, negative parallelisms, vague attributions, filler.
 - Exempt: raw code, code comments, terminal commands, file paths, structured data (JSON/tables), and direct tool output. Humanize only natural-language prose.
-- This is a standing directive — no need to announce the skill each time; just ship humanized prose.
+- Standing directive: for any user-facing prose, run `humanizer:humanizer` on the draft as the last step BEFORE writing the final message. The message you emit IS the humanized result — never a draft you plan to fix afterward. A `Stop` gate (`~/.claude/hooks/humanizer-gate.cjs`) blocks any prose turn that skipped this.
 
 ## Complexity Router
 
