@@ -158,13 +158,17 @@ function main() {
 
   let out = '## Recalled context (auto-memory)\n\n';
   let bytes = out.length;
+  let added = 0;
   for (const h of top) {
     const rel = h.file.replace(os.homedir(), '~');
     const block = `**${rel}** (relevance: ${h.score})\n${h.snippet}\n\n`;
-    if (bytes + block.length > MAX_CONTEXT_BYTES) break;
+    if (bytes + block.length > MAX_CONTEXT_BYTES) continue;
     out += block;
     bytes += block.length;
+    added++;
   }
+
+  if (added === 0) return;
 
   // additionalContext via JSON payload — Claude Code merges into prompt
   const eventName = payload.hook_event_name || 'UserPromptSubmit';
