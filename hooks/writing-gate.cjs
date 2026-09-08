@@ -23,6 +23,8 @@ const BANNED = [
   'writes nothing', 'holds nothing', 'waits for nothing', 'carries nothing',
   'has no', 'have no', 'holds no', 'carries no', 'contains no', 'offers no',
   'provides no', 'requires no', 'needs no', 'makes no', 'references no',
+  'silent', 'silently', 'silence', 'leave it silent', 'stay silent',
+  'quietly', 'quiet', 'rhythm', 'cadence',
 ];
 
 const DASHES = /[–—]|&mdash;|&ndash;/;

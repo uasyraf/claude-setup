@@ -55,6 +55,10 @@ banned words. A hit blocks the turn. Rewrite the reply and send it again.
 | &sect; 3.14 | Section 3.14 |
 | em dash, en dash | period, comma, colon |
 | we, our (in QRRA-facing text) | the implementation |
+| silent, silently, silence | state the action: "does not report", "does not write a log line" |
+| leave it silent, stay silent | do not report it, do not write a message |
+| quiet, quietly | state the action: "without a message", "does not print" |
+| rhythm, cadence | the interval, the order, the schedule |
 
 Keep "read" for code that reads data: "the check reads CS_UPSL". Keep "no" as the natural idiom in
 "no longer", "there is no X", and in a specification's own wording.
