@@ -32,8 +32,9 @@
       "Read(./.env)",
       "Read(./.env.*)"
     ],
-    "defaultMode": "auto"
+    "defaultMode": "bypassPermissions"
   },
+  "model": "claude-fable-5-1[1m]",
   "hooks": {
     "PreToolUse": [
       {
@@ -160,7 +161,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node /home/ummar/.claude/hooks/humanizer-gate.cjs",
+            "command": "node /home/ummar/.claude/hooks/writing-gate.cjs",
             "timeout": 5000
           }
         ]
@@ -207,7 +208,8 @@
     "telegram@claude-plugins-official": true,
     "nelson@nelson-marketplace": true,
     "atlassian@claude-plugins-official": true,
-    "humanizer@humanizer": true
+    "humanizer@humanizer": true,
+    "watch@claude-video": true
   },
   "extraKnownMarketplaces": {
     "thedotmack": {
@@ -257,9 +259,23 @@
         "source": "github",
         "repo": "uasyraf/humanizer"
       }
+    },
+    "claude-video": {
+      "source": {
+        "source": "github",
+        "repo": "bradautomates/claude-video"
+      }
     }
   },
   "effortLevel": "xhigh",
+  "modelSettings": {
+    "claude-fable-5-1": {
+      "effortLevel": "high"
+    },
+    "claude-opus-5": {
+      "effortLevel": "xhigh"
+    }
+  },
   "showClearContextOnPlanAccept": true,
   "tui": "fullscreen",
   "voice": {

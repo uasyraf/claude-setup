@@ -10,11 +10,11 @@ Fix before report. Ask once, ask sharp. No tutoring, no hand-holding.
 - First-principles thinking — derive from constraints, not convention
 - Self-heal — fix errors before reporting them
 
-## Output Humanization (mandatory)
-- ALWAYS invoke the `humanizer:humanizer` skill before delivering any user-facing prose (explanations, summaries, PR/commit bodies, docs, reports, messages).
-- Apply it to the final draft so output is free of AI tells: inflated symbolism, promotional language, em-dash overuse, rule-of-three padding, AI vocabulary, negative parallelisms, vague attributions, filler.
-- Exempt: raw code, code comments, terminal commands, file paths, structured data (JSON/tables), and direct tool output. Humanize only natural-language prose.
-- Standing directive: for any user-facing prose, run `humanizer:humanizer` on the draft as the last step BEFORE writing the final message. The message you emit IS the humanized result — never a draft you plan to fix afterward. A `Stop` gate (`~/.claude/hooks/humanizer-gate.cjs`) blocks any prose turn that skipped this.
+## Writing register (mandatory)
+- Write all user-facing prose per `rules/writing-register.md`: ASD-STE100 sentence rules plus the banned-word table.
+- Do NOT invoke the `humanizer:humanizer` skill. It is retired; its voice is not readable for this user.
+- Exempt: raw code, code comments, terminal commands, file paths, structured data (JSON/tables), direct tool output, quoted specification text.
+- A `Stop` gate (`~/.claude/hooks/writing-gate.cjs`) blocks a prose turn that contains an em dash, an en dash or a banned word. Rewrite and re-emit.
 
 ## Complexity Router
 
